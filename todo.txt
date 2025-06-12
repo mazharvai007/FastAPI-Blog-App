@@ -1,0 +1,7 @@
+virtaulenv venv                                         -> Create Virtaul env
+source venv/bin/activate                                -> Activate virtual environemnt
+pip install -r requirements.txt                         -> Run the command while you need to install
+uvicorn main:app --port 8989 --reload                   -> Run the command while run the project
+docker compose up                                       -> Run the command while needed
+alembic revision --autogenerate -m 'initial migration'  -> Change commit message
+alembic upgrade head
