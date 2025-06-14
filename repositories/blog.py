@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from typing import List, Optional
 from db.base import Blog
-from schemas.blog import BlogCreate, BlogRead, BlogPagination
+from schemas.blog import BlogCreate, BlogRead, BlogPagination, BlogSingleRead
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 
@@ -59,3 +59,11 @@ class BlogRepository:
             limit=limit,
             data=blogs,
         )
+
+    def get_blog_by_id(self, blog_id: int) -> BlogSingleRead:
+        blog = self.db.query(Blog).where(Blog.id == blog_id).first()
+
+        if not blog:
+            raise HTTPException(status_code=404, detail="Blog not found!")
+
+        return blog

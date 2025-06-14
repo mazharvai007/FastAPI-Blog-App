@@ -37,6 +37,18 @@ class BlogRead(BaseModel):
         from_attributes = True
 
 
+class BlogSingleRead(BaseModel):
+    id: int
+    slug: str
+    content: str
+    author_id: int
+    created_at: datetime
+    author: UserView
+
+    class Config:
+        from_attributes = True
+
+
 class BlogPagination(BaseModel):
     total_count: int
     skip: int
