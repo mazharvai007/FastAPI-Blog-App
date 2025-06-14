@@ -6,17 +6,6 @@ import time
 from schemas.user import UserView
 
 
-class BlogRead(BaseModel):
-    id: int
-    slug: str
-    author_id: int
-    created_at: datetime
-    author: UserView
-
-    class Config:
-        orm_mode = True
-
-
 class BlogCreate(BaseModel):
     title: str
     content: str
@@ -36,6 +25,18 @@ class BlogCreate(BaseModel):
         if self.title:
             self.slug = self.create_slug(self.title)
 
+
+class BlogRead(BaseModel):
+    id: int
+    slug: str
+    author_id: int
+    created_at: datetime
+    author: UserView
+
+    class Config:
+        from_attributes = True
+
+
 class BlogPagination(BaseModel):
     total_count: int
     skip: int
@@ -43,4 +44,4 @@ class BlogPagination(BaseModel):
     data: List[BlogRead]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
