@@ -7,7 +7,13 @@ from sqlalchemy.orm import Session
 
 from typing import List, Optional
 from db.base import Blog
-from schemas.blog import BlogCreate, BlogRead, BlogPagination, BlogSingleRead
+from schemas.blog import (
+    BlogCreate,
+    BlogRead,
+    BlogPagination,
+    BlogSingleRead,
+    BlogUpdate,
+)
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 
@@ -61,9 +67,42 @@ class BlogRepository:
         )
 
     def get_blog_by_id(self, blog_id: int) -> BlogSingleRead:
-        blog = self.db.query(Blog).where(Blog.id == blog_id).first()
+        blog = self.db.query(Blog).filter(Blog.id == blog_id).first()
 
         if not blog:
             raise HTTPException(status_code=404, detail="Blog not found!")
 
         return blog
+
+    def get_blog_by_slug(self, blog_slug: str) -> BlogSingleRead:
+        blog = self.db.query(Blog).filter(Blog.slug == blog_slug).first()
+
+        if not blog:
+            raise HTTPException(status_code=404, detail="Blog not found!")
+
+        return blog
+
+    def update_blog(self, blog_id: int, blog: BlogUpdate) -> Optional[Blog]:
+        """
+        Update an existing blog by it's ID
+        """
+
+        db_blog = self.db.query(Blog).filter(Blog.id == blog_id).first()
+
+        if not db_blog:
+            raise HTTPException(status_code=404, detail="Blog not found!")
+
+        if blog.title:
+            db_blog.title = blog.title
+            db_blog.slug = blog.slug
+
+        if blog.content is not None:
+            db_blog.content = blog.content
+
+        if blog.is_active is not None:
+            db_blog.is_active = blog.is_active
+
+        self.db.commit()
+        self.db.refresh(db_blog)
+
+        return db_blog

@@ -57,3 +57,23 @@ class BlogPagination(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class BlogUpdate(BaseModel):
+    title: Optional[str]
+    content: Optional[str]
+    is_active: Optional[bool] = False
+    slug: Optional[str] = None
+
+    @classmethod
+    def create_slug(cls, title: str):
+        # Automatically generate a slug from the title
+        __slugify = slugify(title)
+        __time_hash = hash(time.time())  # time hashed
+        return f"{__slugify}-{__time_hash}"  # Added hashed time with the title slug for uniqueness
+
+    # Override the __init__ method to automatically generate the slug
+    def __init__(self, **data):
+        super().__init__(**data)
+        if self.title:
+            self.slug = self.create_slug(self.title)
