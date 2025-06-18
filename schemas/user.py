@@ -19,5 +19,4 @@ class UserView(BaseModel):
     is_active: bool
 
     class Config:  # tells pydantic to convert even non dict obj to json
-        orm_mode = True
-        # from_attributes = True
+        from_attributes = True

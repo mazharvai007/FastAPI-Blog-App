@@ -15,7 +15,7 @@ class CategoryRead(BaseModel):
     author: UserView
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Create category slug
