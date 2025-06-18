@@ -102,7 +102,30 @@ class BlogRepository:
         if blog.is_active is not None:
             db_blog.is_active = blog.is_active
 
-        self.db.commit()
-        self.db.refresh(db_blog)
+        try:
+            self.db.commit()
+            self.db.refresh(db_blog)
+        except IntegrityError as e:
+            print(e)
+            self.db.rollback()
+            raise HTTPException(status_code=400, detail="Something went wrong!")
 
         return db_blog
+
+    def delete_blog(self, blog_id: int) -> bool:
+        """
+        Delete blog by it's ID
+        """
+
+        db_blog = self.db.query(Blog).filter(Blog.id == blog_id).first()
+
+        if not db_blog:
+            raise HTTPException(status_code=404, detail="Blog not found!")
+
+        try:
+            self.db.delete(db_blog)
+            self.db.commit()
+        except IntegrityError as e:
+            print(e)
+            self.db.rollback()
+            raise HTTPException(status_code=400, detail="Something went wrong!")

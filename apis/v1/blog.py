@@ -50,3 +50,12 @@ def update_blog(blog_id: int, payload: BlogUpdate, db: Session = Depends(get_db)
     blog_repo.update_blog(blog_id=blog_id, blog=payload)
 
     return {"Success": "Blog updated successfully!"}
+
+
+# Get updated blog by its ID
+@router.delete("/{blog_id}")
+def delete_blog(blog_id: int, db: Session = Depends(get_db)):
+    blog_repo = BlogRepository(db=db)
+    blog_repo.delete_blog(blog_id=blog_id)
+
+    return {"Success": "Blog deleted successfully!"}
