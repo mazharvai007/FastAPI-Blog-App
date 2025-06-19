@@ -1,9 +1,6 @@
+from httpx import options
 from sqlalchemy import func
-from sqlalchemy.orm import Session
-
-# from db.session import get_db
-
-# db = get_db().__next__()
+from sqlalchemy.orm import Session, joinedload
 
 from typing import List, Optional
 from db.base import Blog
@@ -15,7 +12,17 @@ from schemas.blog import (
     BlogUpdate,
 )
 from sqlalchemy.exc import IntegrityError
-from fastapi import HTTPException
+from fastapi import HTTPException, status
+
+
+def blog_db(db: Session, blog_id: int) -> Blog:
+    blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    if not blog:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Blog not found!"
+        )
+
+    return blog
 
 
 class BlogRepository:
@@ -42,17 +49,25 @@ class BlogRepository:
         except IntegrityError as e:
             print(e)
             self.db.rollback()
-            raise HTTPException(status_code=400, detail="Something went wrong!")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Something went wrong!"
+            )
 
         return db_blog
 
-    # Get Blogs
+    # Get All Blogs
     def get_blogs(self, skip: int = 0, limit: int = 100) -> BlogPagination:
         """Retrieve a list of blogs with pagination"""
 
         # Get the total number of blogs from Blog table
         total_count = self.db.query(func.count(Blog.id)).scalar()
-        blogs = self.db.query(Blog).offset(skip).limit(limit).all()
+        blogs = (
+            self.db.query(Blog)
+            .options(joinedload(Blog.author))
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
         # Explored
         # total_count = self.db.query(Blog).count()
@@ -66,31 +81,35 @@ class BlogRepository:
             data=blogs,
         )
 
+    # Get blog by its id
     def get_blog_by_id(self, blog_id: int) -> BlogSingleRead:
-        blog = self.db.query(Blog).filter(Blog.id == blog_id).first()
+        return blog_db(db=self.db, blog_id=blog_id)
 
-        if not blog:
-            raise HTTPException(status_code=404, detail="Blog not found!")
-
-        return blog
-
+    # Get blog by its slug
     def get_blog_by_slug(self, blog_slug: str) -> BlogSingleRead:
         blog = self.db.query(Blog).filter(Blog.slug == blog_slug).first()
 
         if not blog:
-            raise HTTPException(status_code=404, detail="Blog not found!")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Blog not found!"
+            )
 
         return blog
 
+    # Update blog
     def update_blog(self, blog_id: int, blog: BlogUpdate) -> Optional[Blog]:
         """
         Update an existing blog by it's ID
         """
 
-        db_blog = self.db.query(Blog).filter(Blog.id == blog_id).first()
+        db_blog = blog_db(db=self.db, blog_id=blog_id)
 
-        if not db_blog:
-            raise HTTPException(status_code=404, detail="Blog not found!")
+        # db_blog = self.db.query(Blog).filter(Blog.id == blog_id).first()
+
+        # if not db_blog:
+        #     raise HTTPException(
+        #         status_code=status.HTTP_400_BAD_REQUEST, detail="Blog not found!"
+        #     )
 
         if blog.title:
             db_blog.title = blog.title
@@ -108,19 +127,19 @@ class BlogRepository:
         except IntegrityError as e:
             print(e)
             self.db.rollback()
-            raise HTTPException(status_code=400, detail="Something went wrong!")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Something went wrong!"
+            )
 
         return db_blog
 
+    # Delete Blog
     def delete_blog(self, blog_id: int) -> bool:
         """
         Delete blog by it's ID
         """
 
-        db_blog = self.db.query(Blog).filter(Blog.id == blog_id).first()
-
-        if not db_blog:
-            raise HTTPException(status_code=404, detail="Blog not found!")
+        db_blog = blog_db(db=self.db, blog_id=blog_id)
 
         try:
             self.db.delete(db_blog)
@@ -128,4 +147,6 @@ class BlogRepository:
         except IntegrityError as e:
             print(e)
             self.db.rollback()
-            raise HTTPException(status_code=400, detail="Something went wrong!")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Something went wrong!"
+            )
