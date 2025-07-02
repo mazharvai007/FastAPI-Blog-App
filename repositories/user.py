@@ -1,16 +1,17 @@
-from click import Option
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import Optional
-from db.base import User
-from fastapi import HTTPException, status
-from utils.password_manager import PasswordManager
-
+from utils.jwt_manager import verify_token
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from db.session import get_db
-from utils.password_manager import PasswordManager
 
-oauth2_schema = OAuth2PasswordBearer(tokenUrl="/auth/token")
+from db.base import User
+from utils.password_manager import PasswordManager
+from db.session import get_db
+
+oauth2_schema = OAuth2PasswordBearer(
+    tokenUrl="/auth/token"
+)  # this '/auth/token' will be the token api or endpoint
 
 
 class UserRepository:
@@ -71,5 +72,35 @@ class UserRepository:
 
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials!"
             )
+
+        is_password_matched = PasswordManager.verify_password(password, user.password)
+
+        if not is_password_matched:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials!"
+            )
+
+        return user
+
+    # Current user execution
+    @staticmethod
+    def get_current_user(
+        token: str = Depends(oauth2_schema), db: Session = Depends(get_db)
+    ):
+        payload = verify_token(token)
+
+        if payload is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token!"
+            )
+
+        user = db.query(User).filter(User.id == payload.get("sub")).first()
+
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_UNAUTHORIZED, detail="User not found!"
+            )
+
+        return user
