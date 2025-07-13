@@ -39,3 +39,28 @@ async def login_for_access_token(
     refresh_token = create_refresh_token(data=token_subject)
 
     return {"access_token": access_token, "refresh_token": refresh_token}
+
+
+# Router for refresh token
+@router.post("/refresh", response_model=Token)
+async def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)):
+    payload = verify_token(refresh_token)
+
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
+
+    payload_subject = payload.get("sub")
+    user = UserRepository(db=db).get_user_by_id(id=payload_subject)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found!"
+        )
+
+    token_subject = {"sub": str(user.id)}
+    new_access_token = create_access_token(data=token_subject)
+    new_refresh_token = create_refresh_token(data=token_subject)
+
+    return {"access_token": new_access_token, "refresh_token": new_refresh_token}

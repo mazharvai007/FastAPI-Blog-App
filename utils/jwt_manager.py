@@ -1,6 +1,15 @@
-import jwt
+from fastapi import HTTPException, status
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+
+from jwt import (
+    DecodeError,
+    ExpiredSignatureError,
+    InvalidTokenError,
+    PyJWKError,
+    decode,
+    encode,
+)
 from core.config import settings
 
 
@@ -20,11 +29,9 @@ def create_access_token(data: dict):
     expire = datetime.now(timezone.utc) + timedelta(minutes=expires_delta)
     to_encode.update({"exp": expire})
 
-    encoded_jwt = jwt.encode(
+    encoded_jwt = encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM
     )
-
-    print(encoded_jwt)
 
     return encoded_jwt
 
@@ -42,23 +49,54 @@ def create_refresh_token(
     expire = datetime.now(timezone.utc) + timedelta(minutes=expires_delta)
     to_encode.update({"exp": expire})
 
-    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return encode(to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
 # Verify Token
 def verify_token(token: str):
     """
-    Verify Token
+    Verify JWT Token and return the decoded payload if valid.
+    Raises HTTPException for any invalid token case.
     """
 
+    if not token or not isinstance(token, str):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token is missing or invalid type.",
+        )
+
+    if token.count(".") != 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Malformed JWT token. Expected 3 parts separated by '.'!",
+        )
+
     try:
-        payload = jwt.decode(
+        payload = decode(
             token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
         return payload
-    except jwt.ExpiredSignatureError as e:
-        print(e)
-    except jwt.PyJWKError as e:
-        print(e)
+
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired."
+        )
+
+    except DecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token is not properly encoded or signed.",
+        )
+
+    except InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token!"
+        )
+
+    except PyJWKError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Token verification error: {e}",
+        )
 
     return None
