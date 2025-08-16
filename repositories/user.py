@@ -95,14 +95,14 @@ class UserRepository:
 
         if payload is None:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token!"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials!"
             )
 
         user = db.query(User).filter(User.id == payload.get("sub")).first()
 
         if user is None:
             raise HTTPException(
-                status_code=status.HTTP_404_UNAUTHORIZED, detail="User not found!"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials!"
             )
 
         return user

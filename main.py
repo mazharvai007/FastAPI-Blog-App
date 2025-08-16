@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from apis.base import api_router
 
 # from fastapi.encoders import jsonable_encoder
@@ -6,6 +6,8 @@ from apis.base import api_router
 # from pydantic import BaseModel
 # from typing import Optional
 
+from db.models.user import User
+from repositories.user import UserRepository
 from core.config import settings
 
 
@@ -62,6 +64,13 @@ app.include_router(api_router)
 def hello_python():
     print(settings.DATABASE_URL)
     return "Hello Python"
+
+
+@app.get("/protected")
+async def protected_route(
+    current_user: User = Depends(UserRepository.get_current_user),
+):
+    return {f"message: Hello {current_user.email}, you are authorized"}
 
 
 # @app.get("/employees")
