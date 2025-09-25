@@ -1,4 +1,5 @@
 from fastapi import Depends, FastAPI
+from fastapi.staticfiles import StaticFiles
 from apis.base import api_router
 
 # from fastapi.encoders import jsonable_encoder
@@ -57,6 +58,8 @@ from core.config import settings
 
 # Initialize the FastAPI app
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.PROJECT_VERSION)
+app.mount("/static", StaticFiles(directory="uploads/images"), name="static")
+
 app.include_router(api_router)
 
 
